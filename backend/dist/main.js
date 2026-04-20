@@ -7,8 +7,12 @@ const swagger_1 = require("@nestjs/swagger");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
     const frontendUrl = process.env.FRONTEND_URL;
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+        'http://localhost:3000',
+        'https://lead-tracker-challenge.vercel.app',
+    ];
     app.enableCors({
-        origin: frontendUrl,
+        origin: allowedOrigins,
         credentials: true,
     });
     app.useGlobalPipes(new common_1.ValidationPipe({
@@ -29,6 +33,8 @@ async function bootstrap() {
     const port = process.env.PORT || 3000;
     await app.listen(port);
     console.log(`Application is running on: http://localhost:${port}`);
+    console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+    console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

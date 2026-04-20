@@ -9,8 +9,13 @@ async function bootstrap() {
   // CORS for frontend
   const frontendUrl = process.env.FRONTEND_URL;
 
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+    'http://localhost:3000',
+    'https://lead-tracker-challenge.vercel.app',
+  ];
+
   app.enableCors({
-    origin: frontendUrl,
+    origin: allowedOrigins,
     credentials: true,
   });
 
@@ -42,6 +47,8 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(`Application is running on: http://localhost:${port}`);
-  // console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+  console.log(`Swagger documentation: http://localhost:${port}/api/docs`);
+  console.log(`CORS enabled for: ${allowedOrigins.join(', ')}`);
 }
+
 bootstrap();
