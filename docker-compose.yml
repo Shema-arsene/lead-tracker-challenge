@@ -1,0 +1,88 @@
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: lead-tracker-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: lead-tracker
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - lead-tracker-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: lead-tracker-backend
+    restart: unless-stopped
+    ports:
+      - "10000:10000"
+    environment:
+      NODE_ENV: production
+      PORT: 10000
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lead-tracker?authSource=admin
+      # MONGODB_URI: mongodb://niyonkurushemaa_db_user:Sxv1nhrHg0TZkviD@ac-tjpyvny-shard-00-00.ezed6ci.mongodb.net:27017,ac-tjpyvny-shard-00-01.ezed6ci.mongodb.net:27017,ac-tjpyvny-shard-00-02.ezed6ci.mongodb.net:27017/?ssl=true&replicaSet=atlas-p1h5wh-shard-0&authSource=admin&appName=Cluster0
+      FRONTEND_URL: http://localhost:3000
+      ALLOWED_ORIGINS: http://localhost:3000,https://lead-tracker-challenge.vercel.app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - lead-tracker-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:10000/api/leads?page=1&limit=1', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: lead-tracker-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:10000/api
+    depends_on:
+      - backend
+    networks:
+      - lead-tracker-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (r) => {r.statusCode === 200 ? process.exit(0) : process.exit(1)})",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+# Volumes for persistent data
+volumes:
+  mongodb_data:
+    driver: local
+
+# Networks
+networks:
+  lead-tracker-network:
+    driver: bridge
